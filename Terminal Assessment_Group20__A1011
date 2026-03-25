@@ -1,32 +1,31 @@
 import java.io.*;
 import java.util.*;
 
-public class PayrollSystem {
+public class Payrollfiles {
 
-    // ===============================
-    // CONSTANTS
-    // ===============================
-    static final double HOURLY_RATE = 150.0;
-    static final double EXPECTED_HOURS = 8.0;
-
-    static final double SSS_RATE = 0.045;
-    static final double PHILHEALTH_RATE = 0.02;
-    static final double PAGIBIG_RATE = 0.02;
-    static final double PAGIBIG_CAP = 100;
-    static final double OVERTIME_RATE = 1.25;
+    static double hourlyRate = 150.0;
+    static double expectedHours = 8.0;
 
     public static void main(String[] args) {
 
-        Map<String, Employee> employees = loadEmployees("employees.txt");
+        List<String[]> employees = loadEmployees("src/main/java/com/mycompany/motorphcode/employee_ids.txt");
 
         boolean allPass = true;
 
-        for (Employee emp : employees.values()) {
-            boolean passed = processEmployee(emp);
+        for (String[] emp : employees) {
+
+            String name = emp[1] + " " + emp[2];
+
+            double timeIn = Double.parseDouble(emp[3]);
+            double timeOut = Double.parseDouble(emp[4]);
+            double breakTime = Double.parseDouble(emp[5]);
+
+            boolean passed = processEmployee(name, timeIn, timeOut, breakTime);
+
             if (!passed) allPass = false;
         }
 
-        System.out.println("\n=================================");
+        System.out.println("\n===============================");
         if (allPass) {
             System.out.println("All employees processed successfully.");
         } else {
@@ -35,83 +34,57 @@ public class PayrollSystem {
     }
 
     // ===============================
-    // EMPLOYEE CLASS
+    // LOAD EMPLOYEES (ONLY ONE FILE NOW)
     // ===============================
-    static class Employee {
-        String id;
-        String name;
-        double timeIn, timeOut, breakTime;
+    public static List<String[]> loadEmployees(String filePath) {
 
-        public Employee(String id, String name,
-                        double timeIn, double timeOut, double breakTime) {
-
-            this.id = id;
-            this.name = name;
-            this.timeIn = timeIn;
-            this.timeOut = timeOut;
-            this.breakTime = breakTime;
-        }
-    }
-
-    // ===============================
-    // LOAD EMPLOYEES (MATCHES YOUR FILE)
-    // ===============================
-    public static Map<String, Employee> loadEmployees(String filePath) {
-
-        Map<String, Employee> map = new HashMap<>();
+        List<String[]> employees = new ArrayList<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
 
             String line;
-            boolean header = true;
+            boolean firstLine = true;
 
             while ((line = br.readLine()) != null) {
 
-                if (header) {
-                    header = false;
+                if (firstLine) {
+                    firstLine = false;
                     continue;
                 }
 
                 String[] parts = line.trim().split("\\s+");
 
                 if (parts.length >= 6) {
-
-                    String id = parts[0];
-                    String name = parts[1] + " " + parts[2];
-
-                    double timeIn = Double.parseDouble(parts[3]);
-                    double timeOut = Double.parseDouble(parts[4]);
-                    double breakTime = Double.parseDouble(parts[5]);
-
-                    Employee emp = new Employee(id, name, timeIn, timeOut, breakTime);
-                    map.put(id, emp);
+                    employees.add(parts);
                 }
             }
 
         } catch (IOException e) {
-            System.out.println("Error loading employee data.");
+            System.out.println("Error loading employee file.");
         }
 
-        return map;
+        return employees;
     }
 
     // ===============================
     // CORE PROCESS
     // ===============================
-    public static boolean processEmployee(Employee emp) {
+    public static boolean processEmployee(String name,
+                                          double timeIn,
+                                          double timeOut,
+                                          double breakTime) {
 
-        // Validation
-        if (emp.timeOut < emp.timeIn) {
-            System.out.println("Invalid time for " + emp.name);
+        if (timeOut < timeIn) {
+            System.out.println("Invalid time for " + name);
             return false;
         }
 
-        double totalHours = (emp.timeOut - emp.timeIn) - emp.breakTime;
+        double totalHours = (timeOut - timeIn) - breakTime;
 
-        double overtime = Math.max(0, totalHours - EXPECTED_HOURS);
-        double regularHours = Math.min(totalHours, EXPECTED_HOURS);
+        double overtime = Math.max(0, totalHours - expectedHours);
+        double regularHours = Math.min(totalHours, expectedHours);
 
-        double grossSalary = computeGross(regularHours, overtime);
+        double grossSalary = computeGrossSalary(regularHours, overtime);
 
         double sss = computeSSS(grossSalary);
         double philHealth = computePhilHealth(grossSalary);
@@ -122,7 +95,7 @@ public class PayrollSystem {
 
         double netSalary = grossSalary - (sss + philHealth + pagIbig + tax);
 
-        printEmployee(emp, totalHours, grossSalary, sss, philHealth, pagIbig, tax, netSalary);
+        printEmployee(name, totalHours, grossSalary, sss, philHealth, pagIbig, tax, netSalary);
 
         return netSalary >= 0;
     }
@@ -130,24 +103,23 @@ public class PayrollSystem {
     // ===============================
     // COMPUTATIONS
     // ===============================
-    public static double computeGross(double hours, double overtime) {
-        return (hours * HOURLY_RATE) + (overtime * HOURLY_RATE * OVERTIME_RATE);
+    public static double computeGrossSalary(double hoursWorked, double overtimeHours) {
+        return (hoursWorked * hourlyRate) + (overtimeHours * hourlyRate * 1.25);
     }
 
-    public static double computeSSS(double gross) {
-        return gross * SSS_RATE;
+    public static double computeSSS(double grossSalary) {
+        return grossSalary * 0.045;
     }
 
-    public static double computePhilHealth(double gross) {
-        return gross * PHILHEALTH_RATE;
+    public static double computePhilHealth(double grossSalary) {
+        return grossSalary * 0.02;
     }
 
-    public static double computePagIbig(double gross) {
-        return Math.min(gross * PAGIBIG_RATE, PAGIBIG_CAP);
+    public static double computePagIbig(double grossSalary) {
+        return Math.min(grossSalary * 0.02, 100);
     }
 
     public static double computeTax(double income) {
-
         if (income <= 20833) return 0;
         else if (income <= 33333) return (income - 20833) * 0.15;
         else if (income <= 66667) return 1875 + (income - 33333) * 0.20;
@@ -159,17 +131,12 @@ public class PayrollSystem {
     // ===============================
     // OUTPUT
     // ===============================
-    public static void printEmployee(Employee emp,
-                                     double hours,
-                                     double gross,
-                                     double sss,
-                                     double philHealth,
-                                     double pagIbig,
-                                     double tax,
-                                     double net) {
+    public static void printEmployee(String name, double hours, double gross,
+                                     double sss, double philHealth,
+                                     double pagIbig, double tax, double net) {
 
-        System.out.println("\n=================================");
-        System.out.println("Employee: " + emp.name);
+        System.out.println("\n===============================");
+        System.out.println("Employee: " + name);
         System.out.printf("Hours Worked: %.2f\n", hours);
         System.out.printf("Gross Salary: PHP %.2f\n", gross);
         System.out.printf("SSS: PHP %.2f\n", sss);
