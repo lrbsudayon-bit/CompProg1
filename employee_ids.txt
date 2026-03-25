@@ -1,0 +1,11 @@
+EmployeeID    FirstName    LastName    TimeIn    TimeOut    Break
+1001    Juan    DelaCruz    8    17.5    1
+1002    Maria    Santos    8    17.5    1
+1003    Alex    Stone    8    17.5    1
+1004    Rasheed    Ordinary    8    17.5    1
+1005    Kenjie    Castanel    8    17.5    1
+1006    Rain    Bismarck    8    17.5    1
+1007    Kenneth    Xavier    8    17.5    1
+1008    Primo    Tumamao    8    17.5    1
+1009    Anthony    Palafox    8    17.5    1
+1010    Joffel    Culinary    8    17.5    1
